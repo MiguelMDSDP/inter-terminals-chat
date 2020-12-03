@@ -18,12 +18,13 @@
 class Connection {
     public:
         Connection(int portNumber) {
-            _socket = createSocket();
-            if (_socket < 0)
+            _socket = createSocket(); // Chamada da função interna de criação de sockets
+            if (_socket < 0) // Verificação de erro
                 printf("[ERRO]: Houve um erro ao criar o socket!\n");
             else {
+                // Limpeza do endereço da variável interna _serverAddress
                 bzero((char *) &_serverAddress, sizeof(_serverAddress));
-                if (configPort(portNumber) < 0) 
+                if (configPort(portNumber) < 0) // Tentativa de configuração da porta
                     printf("[ERRO]: Houve um erro na configuração da porta %d!\n", portNumber);
                 else {
                     _portNumber = portNumber;
@@ -34,8 +35,6 @@ class Connection {
 
         ~Connection() {
             close(_socket);
-            printf("[DESCONEXAO]: %s saiu!\n", _nickName);
-            pthread_exit();
         }
 
         int createSocket() {
@@ -43,27 +42,41 @@ class Connection {
         }
 
         int configPort(int portNumber) {
+            // Configuração da estrutura do endereço do servidor
             _serverAddress.sin_family = AF_INET;  
             _serverAddress.sin_addr.s_addr = INADDR_ANY;
             _serverAddress.sin_port = htons(portNumber);
+
+            // Associação do socket ao endereço
             return bind(_socket, (struct sockaddr *) &_serverAddress, sizeof(_serverAddress));
         }
 
         void run() {
-            listen(_socket, 5);
+            listen(_socket, 5); // Chamada da função listen da biblioteca socket.h
             _clientLength = sizeof(_clientAddress);
+
+            //Chamada da função accept da biblioteca socket.h
             _socket = accept(_socket, (struct sockaddr *) &_clientAddress, &_clientLength);
 
+            // Chamada da função interna de leitura do apelido da conexão
+            // pois sempre que uma conexão é aceita, o apelido é a primeira
+            // mensagem a ser recebida por parte do cliente  
             readNickName();
             fflush(stdin);
 
+            // Início de um loop infinito para ler todas as mensagens que serão recebidas
+            // e imprimi-las na tela. Este loop será quebrado quando a mensagem recebida
+            // for "sairAgora"
             while (true) {
-                bzero(_buffer, 256);
-                int n = read(_socket, _buffer, 255);
+                bzero(_buffer, 256); // Limpa o buffer
+                int n = read(_socket, _buffer, 255); // Chamada da função read da biblioteca socket.h
                 if (n < 0) printf("[ERRO]: Erro no recebimento da última mensagem!");
                 printf("[%s diz]: %s", _nickName, _buffer);
-                if (strcmp(_buffer, "sairAgora\n") == 0)
+                // Verificação de saída
+                if (strcmp(_buffer, "sairAgora\n") == 0) {
+                    printf("[DESCONEXAO]: %s saiu!\n", _nickName);
                     break;
+                }
             }
         }
 
@@ -71,7 +84,7 @@ class Connection {
             bzero(_nickName, 50);
             int n = read(_socket, _nickName, 49);
             if (n < 0) printf("[ERRO]: Erro no recebimento do apelido!");
-            printf("[NOVO USUÁRIO CONECTADO]: %s\n", _nickName);
+            printf("[NOVO USUÁRIO CONECTADO NA PORTA %d]: %s\n", _portNumber, _nickName);
         }
 
     private:
@@ -89,9 +102,12 @@ class Connection {
 
 
 
+/* ===== DEFINIÇÃO DA FUNÇÃO INICIALIZADORA DAS THREADS ===== */
 void *runConn(void *connection) {
     ((Connection *)connection)->run();
 }
+/* ========================================================== */ 
+
 
 
 
