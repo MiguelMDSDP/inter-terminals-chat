@@ -18,14 +18,18 @@
 class Client {
     public:
         Client(char *nickName) {
-            strcpy(_nickName, nickName);
-            _host = gethostbyname("127.0.0.1");
+            strcpy(_nickName, nickName); // Configura o apelido da conexão
+            _host = gethostbyname("127.0.0.1"); // Configura o host para loopback
+
+            // Verificação de erro
             if (_host == NULL) {
                 fprintf(stderr, "[ERRO]: Servidor host não encontrado!\n");
                 exit(0);
             }
 
-            _socket = createSocket();
+            _socket = createSocket(); // Tentativa de criação do socket
+
+            // Verificação de erro
             if (_socket < 0) {
                 printf("[ERRO]: Houve um erro ao criar o socket!\n");
                 exit(0);
@@ -44,28 +48,34 @@ class Client {
         }
 
         void connectToPort(int portNumber) {
+            //Configuração da estrutura do endereço do servidor
             bzero((char *) &_serverAddress, sizeof(_serverAddress));
             _serverAddress.sin_family = AF_INET;
             bcopy((char *)_host->h_addr, (char *)&_serverAddress.sin_addr.s_addr, _host->h_length);
             _serverAddress.sin_port = htons(portNumber);
+
+            // Tentativa de conexão
             if (connect(_socket, (struct sockaddr *) &_serverAddress, sizeof(_serverAddress)) < 0) {
                 printf("[ERRO]: Houve um erro na tentativa de conexão na porta %d!\n", portNumber);
                 exit(0);
             } else {
                 _portNumber = portNumber;
                 printf("[INFO]: Conectado ao servidor 127.0.0.1:%d!\n", _portNumber);
-                noticeNickName();
+                noticeNickName(); // Envio do apelido
             }
         }
 
         void run() {
             printf("[INFO]: Para fechar o chat basta digitar sairAgora\n\n");
+
+            // Início do loop infinito de envio de mensagens
+            // até que seja digito "sairAgora"
             while (true) {
                 fflush(stdin);
                 bzero(_buffer, 256);
                 std::cout << "[Digite sua mensagem]: ";
                 fgets(_buffer, 256, stdin);
-                if (strcmp(_buffer, "sairAgora\n") == 0)
+                if (strcmp(_buffer, "sairAgora\n") == 0) // Verificação de saída
                     break;
                 if (sendMessage() < 0) 
                     printf("[ERRO]: Ocorreu um erro ao enviar a última mensagem!");
@@ -81,7 +91,7 @@ class Client {
         }
 
     private:
-        int _socket;
+        int _socket;    
         int _portNumber;
         char _buffer[256];
         char _nickName[50];
